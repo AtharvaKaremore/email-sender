@@ -36,9 +36,7 @@ app.post("/send-email", async (req, res) => {
             from: process.env.EMAIL,
             to: to,
             subject: subject,
-                html: `<p>Dear ${to},</p>
-            <p>You have successfully registered.</p>
-            <p>Best regards,<br>Your Team</p>`
+            html: message,
         };
 
         // Send Email
