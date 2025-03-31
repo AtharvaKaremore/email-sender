@@ -1,8 +1,18 @@
 const express = require("express");
+const cors = require("cors"); // ✅ Import CORS
 const nodemailer = require("nodemailer");
 require("dotenv").config();
+
 const app = express();
-app.use(express.json()); // Middleware to parse JSON
+
+// ✅ Allow frontend to make requests
+app.use(cors({
+    origin: "*", // Allow all origins (for testing) ✅ Change to specific domain later
+    methods: ["POST"],
+    allowedHeaders: ["Content-Type"]
+}));
+
+app.use(express.json()); // Enable JSON parsing
 
 app.post("/send-email", async (req, res) => {
     try {
@@ -12,12 +22,12 @@ app.post("/send-email", async (req, res) => {
             return res.status(400).json({ error: "Missing fields in request" });
         }
 
-        // Setup Nodemailer (Using Gmail SMTP)
+        // Nodemailer setup with Gmail SMTP
         const transporter = nodemailer.createTransport({
             service: "gmail",
             auth: {
                 user: process.env.EMAIL,
-                pass:  process.env.PASSWORD, // Use an App Password, NOT your real password
+                pass: process.env.PASSWORD, // Use an App Password
             },
         });
 
@@ -39,6 +49,6 @@ app.post("/send-email", async (req, res) => {
     }
 });
 
-// Start server
-const PORT = 3000;
+// ✅ Fix: Use Render-assigned port
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
