@@ -1,54 +1,62 @@
 const express = require("express");
-const cors = require("cors"); // ✅ Import CORS
+const cors = require("cors");
 const nodemailer = require("nodemailer");
 require("dotenv").config();
 
 const app = express();
 
-// ✅ Allow frontend to make requests
+// ✅ Email Transporter Setup
+const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+        user: process.env.EMAIL || "your_email@gmail.com",
+        pass: process.env.PASSWORD || "your_app_password"
+    }
+});
+
+// ✅ CORS Middleware (Restrict to specific origin in production)
 app.use(cors({
-    origin: "*", // Allow all origins (for testing) ✅ Change to specific domain later
+    origin: "*", // ⚠️ Change this to your frontend URL in production
     methods: ["POST"],
     allowedHeaders: ["Content-Type"]
 }));
 
-app.use(express.json()); // Enable JSON parsing
+app.use(express.json()); // 🔄 Parses incoming JSON requests
 
-app.post("/send-email", async (req, res) => {
+// ✅ API Route to Send Email
+app.post('/send-email', async (req, res) => {
     try {
-        const { to, subject, message } = req.body;
+        const { to, subject, message, attachment } = req.body;
 
+        // ✅ Basic validation
         if (!to || !subject || !message) {
-            return res.status(400).json({ error: "Missing fields in request" });
+            return res.status(400).json({ error: "Missing required fields." });
         }
 
-        // Nodemailer setup with Gmail SMTP
-        const transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: {
-                user: process.env.EMAIL,
-                pass: process.env.PASSWORD, // Use an App Password
-            },
-        });
-
-        // Email options
         const mailOptions = {
-            from: process.env.EMAIL,
-            to: to,
-            subject: subject,
+            from: `<${process.env.EMAIL}>`,
+            to,
+            subject,
             html: message,
+            attachments: attachment ? [{
+                filename: attachment.filename || 'attachment.pdf',
+                content: Buffer.from(attachment.content, 'base64'),
+                contentType: attachment.contentType || 'application/pdf'
+            }] : []
         };
 
-        // Send Email
-        await transporter.sendMail(mailOptions);
-        res.json({ success: true, message: "Email sent successfully!" });
+        const result = await transporter.sendMail(mailOptions);
+        console.log("✅ Email sent:", result.messageId);
+        res.json({ message: "Email sent successfully!" });
 
     } catch (error) {
-        console.error("Email sending error:", error);
+        console.error("❌ Email sending failed:", error);
         res.status(500).json({ error: "Internal Server Error" });
     }
 });
 
-// ✅ Fix: Use Render-assigned port
+// ✅ Server Setup
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+    console.log(`🚀 Server is running on http://localhost:${PORT}`);
+});
